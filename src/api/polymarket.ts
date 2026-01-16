@@ -75,9 +75,18 @@ export async function fetchUserProfile(address: string): Promise<UserProfile | n
 }
 
 export async function searchUser(query: string): Promise<UserProfile | null> {
+  const results = await searchUsers(query)
+  return results.length > 0 ? results[0] : null
+}
+
+export async function searchUsers(query: string): Promise<UserProfile[]> {
   try {
+    if (!query || query.length < 2) {
+      return []
+    }
+
     // Try to search via the search endpoint
-    const url = `${GAMMA_API_BASE}/search?query=${encodeURIComponent(query)}&type=profiles&limit=5`
+    const url = `${GAMMA_API_BASE}/search?query=${encodeURIComponent(query)}&type=profiles&limit=8`
 
     const response = await fetch(url)
 
@@ -87,17 +96,15 @@ export async function searchUser(query: string): Promise<UserProfile | null> {
 
     const data = await response.json()
 
-    // Find matching profile
+    // Find matching profiles
     const profiles = data.profiles || []
 
     if (profiles.length === 0) {
-      return null
+      return []
     }
 
-    // Return the first matching profile
-    const profile = profiles[0]
-
-    return {
+    // Return all matching profiles
+    return profiles.map((profile: any) => ({
       address: profile.proxyWallet || profile.address || profile.id,
       proxyWallet: profile.proxyWallet || profile.address || profile.id,
       name: profile.name,
@@ -105,10 +112,10 @@ export async function searchUser(query: string): Promise<UserProfile | null> {
       bio: profile.bio,
       profileImage: profile.profileImage,
       profileImageOptimized: profile.profileImageOptimized,
-    }
+    }))
   } catch (error) {
-    console.error('Error searching user:', error)
-    return null
+    console.error('Error searching users:', error)
+    return []
   }
 }
 
