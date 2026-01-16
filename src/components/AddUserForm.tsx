@@ -14,6 +14,7 @@ export default function AddUserForm({ onAddUser, isLoading, error }: Props) {
   const [isSearching, setIsSearching] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [searchStatus, setSearchStatus] = useState<'idle' | 'searching' | 'no-results' | 'error'>('idle')
   const inputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
 
@@ -25,19 +26,29 @@ export default function AddUserForm({ onAddUser, isLoading, error }: Props) {
     if (trimmedInput.startsWith('0x') || trimmedInput.length < 2) {
       setSuggestions([])
       setShowSuggestions(false)
+      setSearchStatus('idle')
       return
     }
 
     const timeoutId = setTimeout(async () => {
       setIsSearching(true)
+      setSearchStatus('searching')
       try {
         const results = await searchUsers(trimmedInput)
         setSuggestions(results)
-        setShowSuggestions(results.length > 0)
+        if (results.length > 0) {
+          setShowSuggestions(true)
+          setSearchStatus('idle')
+        } else {
+          setShowSuggestions(true)
+          setSearchStatus('no-results')
+        }
         setSelectedIndex(-1)
       } catch (err) {
         console.error('Search error:', err)
         setSuggestions([])
+        setSearchStatus('error')
+        setShowSuggestions(true)
       } finally {
         setIsSearching(false)
       }
@@ -130,11 +141,23 @@ export default function AddUserForm({ onAddUser, isLoading, error }: Props) {
         </button>
 
         {/* Search suggestions dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
+        {showSuggestions && (
           <div
             ref={suggestionsRef}
             className="absolute z-50 w-full mt-2 bg-poly-card border border-poly-border rounded-2xl overflow-hidden shadow-xl animate-fade-in"
           >
+            {searchStatus === 'no-results' && (
+              <div className="p-4 text-center text-gray-400">
+                <p className="text-sm">No users found for "{input}"</p>
+                <p className="text-xs mt-1 text-gray-500">Try a wallet address instead</p>
+              </div>
+            )}
+            {searchStatus === 'error' && (
+              <div className="p-4 text-center text-poly-red">
+                <p className="text-sm">Search failed</p>
+                <p className="text-xs mt-1 text-gray-500">Try entering a wallet address directly</p>
+              </div>
+            )}
             {suggestions.map((profile, index) => {
               const displayName = profile.name || profile.pseudonym || 'Unknown'
               const initials = displayName.slice(0, 2).toUpperCase()
