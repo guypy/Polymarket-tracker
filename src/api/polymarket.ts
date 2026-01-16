@@ -85,18 +85,19 @@ export async function searchUsers(query: string): Promise<UserProfile[]> {
       return []
     }
 
-    // Try to search via the search endpoint
-    const url = `${GAMMA_API_BASE}/search?query=${encodeURIComponent(query)}&type=profiles&limit=8`
+    // Use the correct search endpoint with proper parameters
+    const url = `${GAMMA_API_BASE}/search?q=${encodeURIComponent(query)}&search_profiles=true&limit_per_type=10`
 
     const response = await fetch(url)
 
     if (!response.ok) {
+      console.error(`Search failed with status: ${response.status}`)
       throw new Error(`Search failed: ${response.status}`)
     }
 
     const data = await response.json()
 
-    // Find matching profiles
+    // Find matching profiles from the response
     const profiles = data.profiles || []
 
     if (profiles.length === 0) {
@@ -105,12 +106,12 @@ export async function searchUsers(query: string): Promise<UserProfile[]> {
 
     // Return all matching profiles
     return profiles.map((profile: any) => ({
-      address: profile.proxyWallet || profile.address || profile.id,
-      proxyWallet: profile.proxyWallet || profile.address || profile.id,
+      address: profile.proxyWallet || profile.userAddress || profile.address || profile.id,
+      proxyWallet: profile.proxyWallet || profile.userAddress || profile.address || profile.id,
       name: profile.name,
       pseudonym: profile.pseudonym,
       bio: profile.bio,
-      profileImage: profile.profileImage,
+      profileImage: profile.profileImage || profile.profileImageOptimized,
       profileImageOptimized: profile.profileImageOptimized,
     }))
   } catch (error) {
