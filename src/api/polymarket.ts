@@ -85,8 +85,9 @@ export async function searchUsers(query: string): Promise<UserProfile[]> {
       return []
     }
 
-    // Use the PUBLIC search endpoint (no auth required)
-    const url = `${GAMMA_API_BASE}/public-search?q=${encodeURIComponent(query)}`
+    // Use CORS proxy to access the Polymarket search API
+    const targetUrl = `${GAMMA_API_BASE}/public-search?q=${encodeURIComponent(query)}`
+    const url = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
 
     const response = await fetch(url)
 
