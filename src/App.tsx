@@ -6,7 +6,7 @@ import TrackedUsersList from './components/TrackedUsersList'
 import ActivityFeed from './components/ActivityFeed'
 import NotificationBanner from './components/NotificationBanner'
 import StatusBar from './components/StatusBar'
-import { fetchUserActivity, fetchUserProfile, searchUser } from './api/polymarket'
+import { fetchUserActivity, fetchUserProfile } from './api/polymarket'
 import { requestNotificationPermission, showNotification, initializePushSubscription } from './utils/notifications'
 import { loadState, saveState } from './utils/storage'
 
@@ -142,24 +142,33 @@ function App() {
 
     try {
       let address = input.trim()
-      let profile = null
 
-      // Check if it's an address or username
-      if (address.startsWith('0x') && address.length === 42) {
-        profile = await fetchUserProfile(address)
-      } else {
-        // Try to search for user
-        const searchResult = await searchUser(input)
-        if (searchResult) {
-          address = searchResult.address
-          profile = searchResult
-        }
+      // Check if it's a valid address format
+      if (!address.startsWith('0x')) {
+        setError('Please enter a valid wallet address (0x...)')
+        return
       }
 
       // Check if already tracking
       if (trackedUsers.some(u => u.address.toLowerCase() === address.toLowerCase())) {
         setError('User is already being tracked')
         return
+      }
+
+      // Fetch profile info
+      const profile = await fetchUserProfile(address)
+
+      // Fetch initial activity to establish baseline (prevents notification spam)
+      let lastActivityId: string | undefined
+      let lastActivityAt: number | undefined
+      try {
+        const initialActivities = await fetchUserActivity(address)
+        if (initialActivities.length > 0) {
+          lastActivityId = initialActivities[0].id
+          lastActivityAt = initialActivities[0].timestamp * 1000
+        }
+      } catch (err) {
+        console.log('Could not fetch initial activity, will start fresh')
       }
 
       const newUser: TrackedUser = {
@@ -169,6 +178,8 @@ function App() {
         pseudonym: profile?.pseudonym,
         profileImage: profile?.profileImage || profile?.profileImageOptimized,
         addedAt: Date.now(),
+        lastActivityId,  // Set baseline so we don't notify for old activities
+        lastActivityAt,
       }
 
       setTrackedUsers(prev => [...prev, newUser])
@@ -178,7 +189,7 @@ function App() {
         setIsMonitoring(true)
       }
     } catch (err) {
-      setError('Could not find user. Please check the address or username.')
+      setError('Could not find user. Please check the address.')
       console.error('Error adding user:', err)
     } finally {
       setIsLoading(false)
