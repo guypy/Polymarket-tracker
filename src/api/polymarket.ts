@@ -74,52 +74,9 @@ export async function fetchUserProfile(address: string): Promise<UserProfile | n
   }
 }
 
-export async function searchUser(query: string): Promise<UserProfile | null> {
-  const results = await searchUsers(query)
-  return results.length > 0 ? results[0] : null
-}
-
-export async function searchUsers(query: string): Promise<UserProfile[]> {
-  try {
-    if (!query || query.length < 2) {
-      return []
-    }
-
-    // Use CORS proxy to access the Polymarket search API
-    const targetUrl = `${GAMMA_API_BASE}/public-search?q=${encodeURIComponent(query)}`
-    const url = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
-
-    const response = await fetch(url)
-
-    if (!response.ok) {
-      console.error(`Search failed with status: ${response.status}`)
-      throw new Error(`Search failed: ${response.status}`)
-    }
-
-    const data = await response.json()
-
-    // Find matching profiles from the response
-    const profiles = data.profiles || []
-
-    if (profiles.length === 0) {
-      return []
-    }
-
-    // Return all matching profiles
-    return profiles.map((profile: any) => ({
-      address: profile.proxyWallet || profile.userAddress || profile.address || profile.id,
-      proxyWallet: profile.proxyWallet || profile.userAddress || profile.address || profile.id,
-      name: profile.name,
-      pseudonym: profile.pseudonym,
-      bio: profile.bio,
-      profileImage: profile.profileImage || profile.profileImageOptimized,
-      profileImageOptimized: profile.profileImageOptimized,
-    }))
-  } catch (error) {
-    console.error('Error searching users:', error)
-    return []
-  }
-}
+// Note: Username search is not supported by Polymarket's public API
+// The /public-search endpoint only returns market events, not user profiles
+// Users must be added by their wallet address (0x...)
 
 export async function fetchUserPositions(address: string) {
   const url = `${DATA_API_BASE}/positions?user=${address}&limit=50`
