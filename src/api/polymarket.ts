@@ -85,8 +85,8 @@ export async function searchUsers(query: string): Promise<UserProfile[]> {
       return []
     }
 
-    // Use the correct search endpoint with proper parameters
-    const url = `${GAMMA_API_BASE}/search?q=${encodeURIComponent(query)}&search_profiles=true&limit_per_type=10`
+    // Use the PUBLIC search endpoint (no auth required)
+    const url = `${GAMMA_API_BASE}/public-search?q=${encodeURIComponent(query)}`
 
     const response = await fetch(url)
 
