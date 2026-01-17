@@ -40,7 +40,9 @@ export async function fetchUserActivity(address: string, limit = 50): Promise<Ac
 
 export async function fetchUserProfile(address: string): Promise<UserProfile | null> {
   try {
-    const url = `${GAMMA_API_BASE}/public-profile?address=${address}`
+    // Use CORS proxy to access Polymarket profile API from browser
+    const targetUrl = `${GAMMA_API_BASE}/public-profile?address=${address}`
+    const url = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
 
     const response = await fetch(url)
 
