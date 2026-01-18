@@ -60,11 +60,30 @@ function App() {
         try {
           const userActivities = await fetchUserActivity(user.address)
 
-          // Filter for activities newer than the last check
-          const newActivities = userActivities.filter((activity: Activity) => {
-            const activityTime = activity.timestamp * 1000
-            return !user.lastActivityId || activity.id !== user.lastActivityId
-          })
+          // Find activities newer than the baseline (activities are sorted newest-first)
+          // If no lastActivityId, this is initial sync - set baseline without notifying
+          const newActivities: Activity[] = []
+          if (user.lastActivityId) {
+            for (const activity of userActivities) {
+              if (activity.id === user.lastActivityId) {
+                break // Reached the baseline, stop collecting
+              }
+              newActivities.push(activity)
+            }
+          } else if (userActivities.length > 0) {
+            // No baseline yet - set it now without triggering notifications
+            setTrackedUsers(prev =>
+              prev.map(u =>
+                u.id === user.id
+                  ? {
+                      ...u,
+                      lastActivityAt: userActivities[0].timestamp * 1000,
+                      lastActivityId: userActivities[0].id
+                    }
+                  : u
+              )
+            )
+          }
 
           if (newActivities.length > 0) {
             // Update user's last activity
